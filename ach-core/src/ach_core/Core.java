@@ -13,8 +13,11 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Scanner;
 
 import javax.net.ssl.SSLServerSocket;
+
+import org.json.JSONObject;
 
 import ach_core.Core_ModuleManager.ModuleException;
 
@@ -44,6 +47,130 @@ public class Core {
 		
 		//Chargement des modules
 		startup_modules_load("startup.list");
+		
+		//Lancement du Thread d'écoute des modules
+		Core_ModuleThread module_thread = new Core_ModuleThread(module_socket);
+		module_thread.start();
+		
+		//Ouverture du flux IN (entrée clavier)
+		Scanner input_user = new Scanner(System.in);
+		
+		//Boucle du terminal de commande
+		while(CORE_RUNNING) {
+			System.out.print("core-command > ");
+			String[] input_arg = input_user.nextLine().split(" ");
+			
+			switch(input_arg[0]) {
+			
+			case "command":
+				//Envoi une commande à un module. Usage : command <module> ..argument(s)
+				if(input_arg.length > 2) {
+					Core_ModuleListener module_listener_com = Core_ModuleListener.getListenerByName(input_arg[1]);
+					if(module_listener_com != null) {  //Verification de l'existence du module
+						String tmp_st = input_arg[2];
+						//Concatenation de la commande à envoyer
+						for(int i=3; i<input_arg.length;i++) {tmp_st = tmp_st.concat(" "+input_arg[i]);}
+						
+						//Creation du paquet commande
+						JSONObject tmp_json = new JSONObject();
+						tmp_json.put("type", "packet.command");
+						tmp_json.put("command.args", tmp_st);
+						
+						//Envoi du paquet commande
+						module_listener_com.sendData(tmp_json.toString());
+					}
+					else {log_("Module introuvable","ERROR");}
+				}
+				else {log_("Merci de spécifier les arguments nécessaires","ERROR");}
+				break;
+				
+			case "exit":
+				//Fermeture du noyau ACH # A COMPLETER POUR UNE MEILLEURE FERMETURE #
+				CORE_RUNNING = false;
+				System.exit(0);
+				break;
+				
+			case "load_module" :
+				//Charge un module apparenté au noyau ACH. Usage : load_module <module>
+				try {
+					if(input_arg.length == 2) {
+						log_("Lancement du module "+input_arg[1], "INFOS");
+						
+						//Chargement du module
+						Core_ModuleManager module = new Core_ModuleManager(input_arg[1]);
+						module.load_module();
+						//Réglage par défault des paramètres d'écoute du module (en fonction du paramètre global LISTEN_MODULES)
+						module.listenProcess(LISTEN_MODULES);
+					}
+					else {log_("Utilisation : load_module <module>","HELP");}
+				}
+				catch(ModuleException e) {log_("Module Introuvable ou déjà en cours d'exécution", "ERROR");}
+				catch(IOException e) {e.printStackTrace();}
+				break;
+				
+			case "unload_module" :
+				//Arrete un module chargé et apparenté au noyau ACH. Usage : unload_module <module>
+				try {
+					if(input_arg.length == 2) {
+						log_("Arret du module "+input_arg[1],"INFOS");
+						
+						//Récupération du module chargé
+						Core_ModuleManager module = Core_ModuleManager.getModuleByName(input_arg[1]);
+						if(module != null) {
+							//Arrêt de l'écoute du module
+							module.listenProcess(false);
+							Core_ModuleListener module_listener = Core_ModuleListener.getListenerByName(input_arg[1]);
+							module_listener.closeConnection();
+							//Arrêt du module
+							module.unload_module();
+						}
+						else {log_("Module introuvable","ERROR");}
+					}
+					else {log_("Utilisation : unload_module <module>","HELP");}
+				}
+				catch(ModuleException e) {log_("Module introuvable","ERROR");}
+				break;
+				
+			case "reload_module" :
+				//Redémarre un module chargé et apparenté au noyau ACH. Usage : reload_module <module>
+				try {
+					if(input_arg.length == 2) {
+						log_("Redémarrage du module "+input_arg[1],"INFOS");
+						//Récupération du module chargé
+						Core_ModuleManager module = Core_ModuleManager.getModuleByName(input_arg[1]);
+						if(module != null) {
+							//Arrêt de l'écoute du module
+							module.listenProcess(false);
+							Core_ModuleListener module_listener = Core_ModuleListener.getListenerByName(input_arg[1]);
+							module_listener.closeConnection();
+							//Arrêt du module
+							module.unload_module();
+							
+							//Chargement du module
+							Core_ModuleManager module_n = new Core_ModuleManager(input_arg[1]);
+							module_n.load_module();
+							//Réglage par défault des paramètres d'écoute du module (en fonction du paramètre global LISTEN_MODULES)
+							module_n.listenProcess(LISTEN_MODULES);
+						}
+						else {log_("Module introuvable","ERROR");}
+					}
+					else {log_("Utilisation : reload_module <module>","HELP");}
+				}
+				catch(ModuleException e) {log_("Module introuvable","ERROR");}
+				catch(IOException e) {e.printStackTrace();}
+				break;
+				
+			case "ping":
+				log_("pong.","INFOS");
+				break;
+			
+			default:
+				log_("La commande "+input_arg[0]+" n'existe pas.","ERROR");
+				break;
+				
+			}
+		}
+		input_user.close();
 		
 		
 
