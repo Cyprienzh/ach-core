@@ -20,7 +20,6 @@ public class Core_ModuleListener extends Thread{
 	private String module_name;
 	private PrintWriter os;
 	private BufferedReader is;
-	private boolean running;
 	
 	public final static int UNIDENTIFIED = 0;
 	public final static int IDENTIFIED = 1;
@@ -67,7 +66,7 @@ public class Core_ModuleListener extends Thread{
 								this.module_name = module.getName();
 								modules_list.add(this);
 								sendAck();
-								Core.log_("Liaison du module "+module.getName()+" avec le noyau établie", "INFOS");
+								Core.log_("Liaison du module "+module.getName()+" avec le noyau ï¿½tablie", "INFOS");
 								}
 							else {sendError("error.auth","wrong module key");}
 						}
