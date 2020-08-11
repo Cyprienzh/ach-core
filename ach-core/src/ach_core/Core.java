@@ -26,7 +26,7 @@ public class Core {
 	final static int MODULE_PORT = 9999;
 	final static boolean LISTEN_MODULES = true;
 	final static ArrayList<String> CORE_MODULES = new ArrayList<String>(Arrays.asList());
-	final static ArrayList<String> LOG_FILTER = new ArrayList<String>(Arrays.asList("DEBUG"));
+	final static ArrayList<String> LOG_FILTER = new ArrayList<String>(Arrays.asList("DEBUG","INFOS","ERROR","INIT","HELP"));
 	
 	static boolean CORE_RUNNING = false;
 	static SSLServerSocket module_socket;
@@ -37,6 +37,8 @@ public class Core {
 		//Ouverture du port d'écoute pour les modules
 		try {
 			module_socket = SSLServerSocketKeystoreFactory.getServerSocketWithCert(MODULE_PORT, Core.class.getResourceAsStream("/PRIVATE_OWNET.jks"), "OwnetPassword", SSLServerSocketKeystoreFactory.ServerSecureType.TLSv1_2);
+			CORE_RUNNING = true;
+			log_("Ouverture du port d'écoute MODULES ("+MODULE_PORT+") complétée","INIT");
 		}
 		catch(IOException e) {e.printStackTrace();} 
 		catch (KeyManagementException e) {e.printStackTrace();}
@@ -94,11 +96,11 @@ public class Core {
 				//Charge un module apparenté au noyau ACH. Usage : load_module <module>
 				try {
 					if(input_arg.length == 2) {
-						log_("Lancement du module "+input_arg[1], "INFOS");
 						
 						//Chargement du module
 						Core_ModuleManager module = new Core_ModuleManager(input_arg[1]);
 						module.load_module();
+						log_("Lancement du module "+input_arg[1], "INFOS");
 						//Réglage par défault des paramètres d'écoute du module (en fonction du paramètre global LISTEN_MODULES)
 						module.listenProcess(LISTEN_MODULES);
 					}

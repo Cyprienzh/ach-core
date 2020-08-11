@@ -31,6 +31,8 @@ public class Core_ModuleListener extends Thread{
 		this.module_socket = pSocket;
 		this.module_state = UNIDENTIFIED;
 		this.module_name = "";
+		
+		modules_list.add(this);
 	}
 	
 	public void run() {
@@ -50,7 +52,7 @@ public class Core_ModuleListener extends Thread{
 					//PACKET MESSAGE_MODULE
 					case "packet.message_module" :
 						Core_ModuleListener mod = getListenerByName(json_message.getString("message_module.dest"));
-						if(mod != null) {
+						if(mod != null && this.module_state == IDENTIFIED) {
 							mod.os.println(json_message.getString("message_module.content"));
 							mod.os.flush();
 						}
@@ -66,7 +68,7 @@ public class Core_ModuleListener extends Thread{
 								this.module_name = module.getName();
 								modules_list.add(this);
 								sendAck();
-								Core.log_("Liaison du module "+module.getName()+" avec le noyau �tablie", "INFOS");
+								Core.log_("Liaison du module "+module.getName()+" avec le noyau établie", "INFOS");
 								}
 							else {sendError("error.auth","wrong module key");}
 						}
@@ -97,6 +99,7 @@ public class Core_ModuleListener extends Thread{
 		this.module_state = DISCONNECTED;
 		try {this.module_socket.close();}
 		catch(IOException e) {e.printStackTrace();}
+		if(modules_list.contains(this)) {modules_list.remove(this);}
 	}
 	
 	public void sendData(String json_tmp) {

@@ -23,7 +23,7 @@ public class Core_ModuleThread extends Thread{
 				Core_ModuleListener module_listener = new Core_ModuleListener(module_socket);
 				module_listener.start();
 			}
-			catch(SSLException e) {Core.log_("Probleme de connexion avec un module : "+e.getLocalizedMessage(),"ERROR");}
+			catch(SSLException e) {Core.log_("Probleme de connexion avec le module "+e.getLocalizedMessage(),"ERROR");}
 			catch(IOException e) {e.printStackTrace();}
 		}
 
